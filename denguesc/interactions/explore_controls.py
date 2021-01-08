@@ -115,11 +115,13 @@ if __name__ == '__main__':
 
     # Make it redundant (Yike calls it 'merge')
     res2 = res.loc[res['cell_type1'] != res['cell_type2']].copy()
-    res2.rename({
+    res2.rename(columns={
         'cell_type1': 'cell_type2',
         'cell_type2': 'cell_type1',
         'gene_name_a': 'gene_name_b',
         'gene_name_b': 'gene_name_a',
+        'frac1': 'frac2',
+        'frac2': 'frac1',
     }, inplace=True)
     res2 = res2[res.columns]
 
