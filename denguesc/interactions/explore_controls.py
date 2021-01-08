@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
     # Flexible criterion
     criterion = {'key': 'frac_exp', 'threshold': 0.1}
-    criterion = {'key': 'avg_exp', 'threshold': 50}
+    criterion = {'key': 'avg_exp', 'threshold': {'child': 60, 'adult': 35}}
 
     from collections import defaultdict
     th = criterion['threshold']
@@ -108,7 +108,12 @@ if __name__ == '__main__':
             avga = avgd.loc[ga, col].values
             avgb = avgd.loc[gb, col2].values
             key = criterion['key']
-            ind = (stats[key].loc[ga, col].values > th) & (stats[key].loc[gb, col2].values > th)
+            if isinstance(th, dict):
+                th1 = th[col[0]]
+            else:
+                th1 = th
+
+            ind = (stats[key].loc[ga, col].values > th1) & (stats[key].loc[gb, col2].values > th1)
             ind = ind.nonzero()[0]
             for i in ind:
                 resi = {
@@ -275,8 +280,15 @@ if __name__ == '__main__':
             bc = 0.5 * (bl + br)
             tmp = df.loc[(ytobin >= bl) & (ytobin < br)]
             xtmp = tmp['Exp fraction'].values
-            yfit = gaussian_kde(xtmp, bw_method=0.3)(xfit)
-            yfit *= 1 / yfit.max()
+            if len(xtmp) > 2:
+                yfit = gaussian_kde(xtmp, bw_method=0.3)(xfit)
+            else:
+                yfit = np.zeros_like(xfit)
+            if len(xtmp) == 1:
+                i = np.argmin(np.abs(xfit - xtmp[0]))
+                yfit[i] = 1
+            if len(xtmp):
+                yfit *= 1 / yfit.max()
             ytmp = 10**(bc + yfit)
             imax = np.argmax(ytmp)
             ridge.append([xfit[imax], ytmp[imax]])
@@ -291,7 +303,7 @@ if __name__ == '__main__':
         # Model as x = f(y), because the average exp is what we really have
         from scipy.interpolate import interp1d
         model = interp1d(np.log10(base[:, 1]), base[:, 0],
-                kind='quadratic')
+                kind='linear')
 
         def logmodel(y):
             '''Get the fraction of expressing from the avg exp [cpm]'''
@@ -330,28 +342,30 @@ if __name__ == '__main__':
     dchildren = plot_correspondence(df.loc[pd.IndexSlice[:, 'child'], :])
     dchildren['fig'].suptitle('Children')
 
+    if False:
+        fig_fdn = '../../figures/equipotential/'
+        dadults['fig'].savefig(f'{fig_fdn}kde_adults.png')
+        dchildren['fig'].savefig(f'{fig_fdn}kde_children.png')
 
-    fig_fdn = '../../figures/equipotential/'
-    dadults['fig'].savefig(f'{fig_fdn}kde_adults.png')
-    dchildren['fig'].savefig(f'{fig_fdn}kde_children.png')
+        print('Match the two models')
+        tmodel = np.linspace(0, 1, 100)
+        exp_adults = dadults['model_inverse'](tmodel)
+        exp_children = dchildren['model_inverse'](tmodel)
 
-    print('Match the two models')
-    tmodel = np.linspace(0, 1, 100)
-    exp_adults = dadults['model_inverse'](tmodel)
-    exp_children = dchildren['model_inverse'](tmodel)
+        fig, ax = plt.subplots(figsize=(3.2, 3))
+        ax.plot(exp_adults, exp_children, '-', lw=2, color='darkred')
+        xx = np.logspace(-1, 4, 100)
+        ax.plot(xx, xx, lw=2, color='k', alpha=0.7, ls='--')
+        ax.plot(xx, 1.6*xx, lw=2, color='grey', alpha=0.7, ls='--')
+        ax.set_xlim(1e-1, 1e4)
+        ax.set_ylim(1e-1, 1e4)
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        ax.grid(True)
+        ax.set_xlabel('Avg exp adults [cpm]')
+        ax.set_ylabel('Avg exp children [cpm]')
+        ax.set_title('Equipotential line\n(fraction expressing)')
+        fig.tight_layout()
+        fig.savefig(f'{fig_fdn}equivalence.png')
 
-    fig, ax = plt.subplots(figsize=(3.2, 3))
-    ax.plot(exp_adults, exp_children, '-', lw=2, color='darkred')
-    xx = np.logspace(-1, 4, 100)
-    ax.plot(xx, xx, lw=2, color='k', alpha=0.7, ls='--')
-    ax.plot(xx, 1.6*xx, lw=2, color='grey', alpha=0.7, ls='--')
-    ax.set_xlim(1e-1, 1e4)
-    ax.set_ylim(1e-1, 1e4)
-    ax.set_xscale('log')
-    ax.set_yscale('log')
-    ax.grid(True)
-    ax.set_xlabel('Avg exp adults [cpm]')
-    ax.set_ylabel('Avg exp children [cpm]')
-    ax.set_title('Equipotential line\n(fraction expressing)')
-    fig.tight_layout()
-    fig.savefig(f'{fig_fdn}equivalence.png')
+    plt.ion(); plt.show()
