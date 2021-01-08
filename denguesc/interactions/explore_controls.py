@@ -19,38 +19,39 @@ sys.path.append('/home/fabio/university/PI/projects/anndata_utils/')
 from anndata_utils.partition import split, expressing_fractions, average
 
 
-pdict = {'child': ['1_019_01',
-  '3_012_01',
-  '3_037_01',
-  '6_023_01',
-  '3_047_01',
-  '3_074_01',
-  '5_030_01',
-  '5_193_01',
-  '5_154_01',
-  '6_001_01',
-  '5_041_01',
-  '1_075_01',
-  '1_140_01',
-  '1_144_01',
-  '5_044_01',
-  '1_002_01',
-  '6_020_01',
-  '6_025_01',
-  '6_028_01',
-  '5_089_01'],
- 'adult': ['3_013_01',
-  '3_027_01',
-  '1_008_01',
-  '1_013_01',
-  '1_020_01',
-  '1_026_01',
-  '3_018_01',
-  '3_006_01',
-  '1_010_01',
-  '1_036_01']}
-
-
+pdict = {'child': [
+    '1_019_01',
+    '3_012_01',
+    '3_037_01',
+    '6_023_01',
+    '3_047_01',
+    '3_074_01',
+    '5_030_01',
+    '5_193_01',
+    '5_154_01',
+    '6_001_01',
+    '5_041_01',
+    '1_075_01',
+    '1_140_01',
+    '1_144_01',
+    '5_044_01',
+    '1_002_01',
+    '6_020_01',
+    '6_025_01',
+    '6_028_01',
+    '5_089_01'],
+ 'adult': [
+     '3_013_01',
+     '3_027_01',
+     '1_008_01',
+     '1_013_01',
+     '1_020_01',
+     '1_026_01',
+     '3_018_01',
+     '3_006_01',
+     '1_010_01',
+     '1_036_01'],
+ }
 
 
 def loc_gene_ct(fracd, gene, cell_type):
@@ -84,9 +85,18 @@ if __name__ == '__main__':
     adatag.obs['split_col'] = obs['dataset'] + '+' + obs['Condition'].astype(str) + '+' + obs['cell_type'].astype(str)
 
     fracd = expressing_fractions(adatag, ['dataset', 'Condition', 'cell_type'])
+    avgd = average(adata, ['dataset', 'Condition', 'cell_type'], log=False)
+    stats = {
+        'frac_exp': fracd,
+        'avg_exp': avgd,
+    }
+
+    # Flexible criterion
+    criterion = {'key': 'frac_exp', 'threshold': 0.1}
+    criterion = {'key': 'avg_exp', 'threshold': 50}
 
     from collections import defaultdict
-    th = 0.10
+    th = criterion['threshold']
     cell_types = list(obs['cell_type'].cat.categories)
     res = []
     for col in fracd.columns:
@@ -95,7 +105,10 @@ if __name__ == '__main__':
             col2 = (datas, cond, cell_type2)
             fra = fracd.loc[ga, col].values
             frb = fracd.loc[gb, col2].values
-            ind = (fra > th) & (frb > th)
+            avga = avgd.loc[ga, col].values
+            avgb = avgd.loc[gb, col2].values
+            key = criterion['key']
+            ind = (stats[key].loc[ga, col].values > th) & (stats[key].loc[gb, col2].values > th)
             ind = ind.nonzero()[0]
             for i in ind:
                 resi = {
@@ -107,6 +120,8 @@ if __name__ == '__main__':
                     'gene_name_b': interactions.iloc[i]['gene_name_b'],
                     'frac1': fra[i],
                     'frac2': frb[i],
+                    'avg1': avga[i],
+                    'avg2': avgb[i],
                 }
                 res.append(resi)
     res = pd.DataFrame(res)
@@ -122,6 +137,8 @@ if __name__ == '__main__':
         'gene_name_b': 'gene_name_a',
         'frac1': 'frac2',
         'frac2': 'frac1',
+        'avg1': 'avg2',
+        'avg2': 'avg1',
     }, inplace=True)
     res2 = res2[res.columns]
 
@@ -169,7 +186,6 @@ if __name__ == '__main__':
                 )
         fig.tight_layout()
 
-    avgd = average(adata, ['dataset', 'Condition', 'cell_type'], log=True)
     avgdp = average(adata, ['Patient', 'Condition', 'cell_type'], log=True)
 
     def plot_genes(avgd, cell_type, ax=None, cond='Healthy', genes=genes_ubi, **kwargs):
