@@ -18,6 +18,19 @@ import seaborn as sns
 sys.path.append('/home/fabio/university/PI/projects/anndata_utils/')
 
 
+known_interactions = [
+    ['B_cells', 'CD40', 'T_cells', 'CD40LG'],
+]
+known_interactions = pd.DataFrame(
+        known_interactions,
+        columns=['cell_type1', 'gene_name_a', 'cell_type2', 'gene_name_b'],
+        )
+
+
+def loc_gene_ct(fracd, gene, cell_type):
+    return fracd.loc[gene, pd.IndexSlice[:, :, cell_type]]
+
+
 if __name__ == '__main__':
 
     print('Load interactions')
@@ -47,7 +60,7 @@ if __name__ == '__main__':
     fracd = expressing_fractions(adatag, split_cols)
 
     from collections import defaultdict
-    th = 0.15
+    th = 0.10
     cell_types = list(obs['cell_type'].cat.categories)
     res = []
     for col in fracd.columns:

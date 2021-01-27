@@ -191,7 +191,7 @@ if __name__ == '__main__':
                 )
         fig.tight_layout()
 
-    avgdp = average(adata, ['Patient', 'Condition', 'cell_type'], log=True)
+    avgdp = average(adata, ['Patient', 'Condition', 'cell_type'], log=False)
 
     def plot_genes(avgd, cell_type, ax=None, cond='Healthy', genes=genes_ubi, **kwargs):
         df = avgd.loc[genes, pd.IndexSlice[:, cond, cell_type]]
@@ -369,3 +369,42 @@ if __name__ == '__main__':
         fig.savefig(f'{fig_fdn}equivalence.png')
 
     plt.ion(); plt.show()
+
+    print('Differential expression and interactions')
+    cts = ['T_cells', 'B_cells', 'Monocytes', 'NK_cells']
+    pc = 1e-3
+    avg_diff = np.log10(pc + avgd.loc[genes, pd.IndexSlice[:, 'S_dengue', cts]]) - \
+        np.log10(1e-3 + avgd.loc[genes, pd.IndexSlice[:, 'Healthy', cts]].values)
+
+    fig, axs = plt.subplots(2, 2, figsize=(6, 6))
+    axs = axs.ravel()
+    for ct, ax in zip(cts, axs):
+        data = avg_diff.loc[:, pd.IndexSlice[:, :, ct]]
+        ind = (np.abs(data) > 0.1).any(axis=1)
+        datap = data.loc[ind]
+        datap.columns = datap.columns.get_level_values(0)
+
+        x, y = datap.values.T
+        r = np.sqrt(x**2 + y**2)
+        rmax = r.max()
+        for xi, yi, ri in zip(x, y, r):
+            ax.scatter([xi], [yi], color='steelblue', alpha=0.1 + 0.9 * (ri / rmax))
+        #sns.kdeplot(x, y, ax=ax)
+        ax.set_xlabel(datap.columns[0])
+        ax.set_ylabel(datap.columns[1])
+        ax.grid(True)
+        ax.set_title(ct)
+
+        shortlist = np.unique(
+                list(datap['child'].nlargest(10).index) + \
+                list(datap['child'].nsmallest(10).index) + \
+                list(datap['adult'].nlargest(10).index) + \
+                list(datap['adult'].nsmallest(10).index))
+        for gene in shortlist:
+            ax.text(datap.loc[gene].values[0], datap.loc[gene].values[1] + 0.1,
+                    gene, ha='center', va='center')
+
+    fig.tight_layout()
+
+
+
