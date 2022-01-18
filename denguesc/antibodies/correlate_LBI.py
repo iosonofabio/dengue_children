@@ -16,6 +16,7 @@ import seaborn as sns
 
 
 def get_condition(pname):
+    fdn_data = '../../data/datasets/20200809_20kids/vdj/'
     pcond = pd.read_csv(
         fdn_data+'../../20201002_merged/patient_conditions.tsv',
         sep='\t',
@@ -80,6 +81,7 @@ if __name__ == '__main__':
             'IGHG1': 'red',
             'IGHG2': 'orange',
             'IGHG3': 'gold',
+            'IGHG4': 'lawngreen',
             'IGHA1': 'steelblue',
             'IGHA2': 'slateblue',
             'IGHE': 'black',

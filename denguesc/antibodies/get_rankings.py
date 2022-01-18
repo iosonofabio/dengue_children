@@ -71,6 +71,9 @@ def get_tree_and_rankings(seqs, outgroup_label):
         fn_out = tmpdirname+'/ali_out.fasta'
         sp.run(f'muscle -in {fn_in} -out {fn_out} -diags', shell=True, check=True)
 
+        # Get terminal alignments
+        leaves_seqs = list(parse_seqs(fn_out, 'fasta'))
+
         ## Make phylogenetic tree from MSA
         #fn_tree = tmpdirname+'/tree.nwk'
         #sp.run(f'FastTree -out {fn_tree} {fn_out}', shell=True, check=True)
@@ -102,6 +105,7 @@ def get_tree_and_rankings(seqs, outgroup_label):
         'ranking_internal': rank_int,
         'ranking_leaves': rank_ter,
         'ancestral_sequences': anc_seqs,
+        'leaves_sequences': leaves_seqs,
         }
 
 

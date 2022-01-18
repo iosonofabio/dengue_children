@@ -51,6 +51,8 @@ if __name__ == '__main__':
     fn_h5ad = '../../data/datasets/20201002_merged/mergedata_20200930_high_quality.h5ad'
     adata = anndata.read_h5ad(fn_h5ad)
 
+    sys.exit()
+
     cts = [
         'B_cells',
         'Monocytes',
